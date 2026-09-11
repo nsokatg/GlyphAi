@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>GlyphAI - Modern Writer</title>
+    <style>
+        /* 現代的な配色パレット */
+        :root {
+            --bg-color: #f1f5f9;
+            --panel-bg: #ffffff;
+            --output-bg: #f8fafc;
+            --primary: #475569;
+            --accent: #3b82f6;
+            --text: #1e293b;
+            --border: #e2e8f0;
+        }
+
+        body { margin: 0; font-family: 'Inter', -apple-system, sans-serif; height: 100vh; display: flex; flex-direction: column; background: var(--bg-color); color: var(--text); }
+        
+        header { padding: 16px 24px; background: var(--primary); color: white; display: flex; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        header h1 { margin: 0; font-size: 1.25rem; font-weight: 600; letter-spacing: -0.5px; }
+
+        .container { display: flex; flex: 1; overflow: hidden; padding: 16px; gap: 16px; }
+        .pane { flex: 1; display: flex; flex-direction: column; background: var(--panel-bg); border-radius: 12px; border: 1px solid var(--border); padding: 20px; box-sizing: border-box; }
+        
+        .pane-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        h2 { font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin: 0; letter-spacing: 0.05em; }
+        
+        .header-tools { display: flex; align-items: center; gap: 10px; }
+        
+        textarea { flex: 1; padding: 16px; font-size: 1rem; border: 1px solid var(--border); border-radius: 8px; resize: none; background: #ffffff; line-height: 1.6; }
+        .output-box { flex: 1; padding: 16px; font-size: 1rem; border: 1px solid var(--border); border-radius: 8px; background: var(--output-bg); overflow-y: auto; white-space: pre-wrap; color: var(--text); line-height: 1.6; word-break: break-all; }
+        
+        .tools { display: flex; align-items: center; gap: 12px; font-size: 0.85rem; color: #64748b; margin-bottom: 12px; }
+        .char-limit-input { width: 50px; padding: 6px; border: 1px solid var(--border); border-radius: 6px; text-align: center; }
+        
+        .control-panel { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+        .presets { display: flex; gap: 8px; flex-wrap: wrap; }
+        .preset-btn { background: #f8fafc; border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; color: #475569; transition: all 0.2s; }
+        .preset-btn:hover { background: #e2e8f0; }
+        
+        /* クリアボタン用の小ぶりなデザイン */
+        .clear-btn { background: #f8fafc; border: 1px solid var(--border); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; color: #64748b; transition: all 0.2s; }
+        .clear-btn:hover { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+
+        .prompt-row { display: flex; gap: 8px; }
+        .prompt-row input[type="text"] { flex: 1; padding: 10px 14px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; }
+        .action-btn { padding: 10px 24px; background: var(--accent); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        .reflect-btn { margin-top: 12px; background: #10b981; color: white; border: none; border-radius: 6px; padding: 12px; cursor: pointer; font-weight: 600; width: 100%; }
+    </style>
+</head>
+<body>
+
+    <header><h1>GlyphAI</h1></header>
+
+    <div class="container">
+        <!-- Input Pane -->
+        <div class="pane">
+            <div class="pane-header">
+                <h2>Input</h2>
+                <div class="header-tools">
+                    <span id="charCount" style="font-size: 0.8rem; color: #94a3b8;">0文字</span>
+                    <button class="clear-btn" onclick="clearInput()">クリア</button>
+                </div>
+            </div>
+            
+            <div class="tools">
+                <span>1行の文字数:</span>
+                <input type="number" id="lineLimit" class="char-limit-input" value="35">
+                <button class="preset-btn" onclick="formatText()">整列</button>
+            </div>
+
+            <textarea id="inputText" placeholder="文章を入力..." oninput="updateCharCount()"></textarea>
+            
+            <div class="control-panel">
+                <div class="presets">
+                    <button class="preset-btn" onclick="setInstruction('誤字脱字を修正して、自然な文章にしてください。')">誤字脱字修正</button>
+                    <button class="preset-btn" onclick="setInstruction('丁寧なビジネスメールのトーンに書き換えてください。')">ビジネス調</button>
+                    <button class="preset-btn" onclick="setInstruction('要点を簡潔にまとめてください。')">要約</button>
+                    <button class="preset-btn" onclick="setInstruction('質問に的確で分かりやすい回答をしてください。')">質問に回答</button>
+                    <button class="preset-btn" onclick="setInstruction('口調を統一し、丁寧な「です・ます」調に書き換えてください。')">ですます調</button>
+                    <button class="preset-btn" onclick="setInstruction('文章の構造を整理し、分かりやすい箇条書きにまとめてください。')">箇条書き</button>
+                    <button class="preset-btn" onclick="setInstruction('表現をより豊かにし、説得力のある文章にブラッシュアップしてください。')">表現力向上</button>
+                    <button class="preset-btn" onclick="setInstruction('堅苦しさをなくし、親しみやすく温かみのあるトーンに書き換えてください。')">親しみやすく</button>
+                    <button class="preset-btn" onclick="setInstruction('以下の文章を自然な英語に翻訳してください。')">英訳</button>
+                    <button class="preset-btn" onclick="setInstruction('以下の文章を自然な日本語に翻訳してください。')">和訳</button>
+                </div>
+                <div class="prompt-row">
+                    <input type="text" id="instructionText" placeholder="AIへの指示を入力...">
+                    <button class="action-btn" onclick="runAI()">GlyphAI実行</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Output Pane -->
+        <div class="pane">
+            <div class="pane-header">
+                <h2>Output</h2>
+                <button class="clear-btn" onclick="clearOutput()">クリア</button>
+            </div>
+            <div id="outputText" class="output-box">ここにGlyphAIの実行結果が表示されます。</div>
+            <button class="reflect-btn" onclick="reflectToInput()">左側に反映する ↩</button>
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = "AQ.Ab8RN6KiJb8tadEsKoHLr7-ivRK-vVX6A4w27GKTON9LwOODlw"; 
+
+        function updateCharCount() {
+            const count = document.getElementById('inputText').value.length;
+            document.getElementById('charCount').textContent = count + "文字";
+        }
+
+        /* 独立したInputクリア関数 */
+        function clearInput() {
+            document.getElementById('inputText').value = '';
+            updateCharCount();
+        }
+
+        /* 独立したOutputクリア関数 */
+        function clearOutput() {
+            document.getElementById('outputText').textContent = 'ここにGlyphAIの実行結果が表示されます。';
+        }
+
+        // 文字の幅を判定（全角＝1.0, 半角＝0.5）
+        function getCharWidth(char) {
+            // ASCII文字、半角カナ、一部の制御文字を半角（0.5文字）として扱う
+            if (char.match(/^[\x20-\x7e\uff61-\uff9f]$/)) {
+                return 0.5;
+            }
+            return 1.0;
+        }
+
+        function formatText() {
+            const limit = parseFloat(document.getElementById('lineLimit').value) || 35;
+            const text = document.getElementById('inputText').value;
+            if (!text) return;
+            
+            // 既存の改行コードを削除して連結
+            const cleanText = text.replace(/\r\n/g, '').replace(/\n/g, '');
+            let formattedLines = [];
+            let currentLine = "";
+            let currentWidth = 0;
+
+            for (let i = 0; i < cleanText.length; i++) {
+                const char = cleanText[i];
+                const width = getCharWidth(char);
+
+                // 文字を追加した場合に指定幅を超えるか判定
+                if (currentWidth + width > limit) {
+                    formattedLines.push(currentLine);
+                    currentLine = char;
+                    currentWidth = width;
+                } else {
+                    currentLine += char;
+                    currentWidth += width;
+                }
+
+                // 句点（。）が出現した場合は強制改行
+                if (char === '。') {
+                    formattedLines.push(currentLine);
+                    currentLine = "";
+                    currentWidth = 0;
+                }
+            }
+
+            // 残った文字を追加
+            if (currentLine.length > 0) {
+                formattedLines.push(currentLine);
+            }
+            
+            document.getElementById('inputText').value = formattedLines.join('\n');
+            updateCharCount();
+        }
+
+        function setInstruction(text) { document.getElementById('instructionText').value = text; }
+
+        async function runAI() {
+            const inputVal = document.getElementById('inputText').value;
+            const instruction = document.getElementById('instructionText').value;
+            const outputBox = document.getElementById('outputText');
+            if (!inputVal.trim()) { alert('文章を入力してください。'); return; }
+            outputBox.textContent = "GlyphAIが思考中...";
+
+            const prompt = `あなたは優秀なアシスタントです。指示に従って出力してください。出力文の先頭や各行の先頭に「>」などの引用記号や、不要なMarkdownの装飾は一切含めず、純粋なプレーンテキストのみを出力してください。\n\n指示: ${instruction}\n\n対象内容:\n${inputVal}`;
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${API_KEY}`;
+            try {
+                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
+                const data = await response.json();
+                if (data.error) { outputBox.textContent = `エラー: ${data.error.message}`; return; }
+                
+                let rawText = data.candidates[0].content.parts[0].text.replace(/\*\*/g, '');
+                let cleanedText = rawText.replace(/^>[ ]?/gm, ''); 
+                
+                outputBox.textContent = cleanedText;
+            } catch (error) { outputBox.textContent = "エラー: " + error.message; }
+        }
+
+        function reflectToInput() {
+            const outputBox = document.getElementById('outputText');
+            const inputText = document.getElementById('inputText');
+            const content = outputBox.innerText || outputBox.textContent;
+            
+            if (content.includes('エラー') || content.includes('思考中') || content.includes('ここにGlyphAIの実行結果が表示されます。')) return;
+            
+            inputText.value = content;
+            updateCharCount();
+        }
+    </script>
+</body>
+</html>
