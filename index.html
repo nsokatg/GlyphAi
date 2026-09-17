@@ -39,6 +39,17 @@
         .preset-btn { background: #f8fafc; border: 1px solid var(--border); padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; color: #475569; transition: all 0.2s; }
         .preset-btn:hover { background: #e2e8f0; }
         
+        /* APIキー設定パネル用スタイル */
+        .api-key-panel { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; }
+        .api-key-panel label { display: block; font-size: 0.75rem; font-weight: 700; color: #64748b; margin-bottom: 6px; }
+        .api-key-row { display: flex; gap: 8px; }
+        .api-key-row input { flex: 1; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.85rem; }
+        .save-btn { background: #2563eb; color: white; border: none; border-radius: 6px; padding: 8px 12px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+        .save-btn:hover { background: #1d4ed8; }
+        .delete-btn { background: #ef4444; color: white; border: none; border-radius: 6px; padding: 8px 12px; font-size: 0.8rem; font-weight: 600; cursor: pointer; }
+        .delete-btn:hover { background: #dc2626; }
+        .status-text { margin: 6px 0 0 0; font-size: 0.75rem; color: #64748b; }
+
         /* クリアボタン用の小ぶりなデザイン */
         .clear-btn { background: #f8fafc; border: 1px solid var(--border); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; color: #64748b; transition: all 0.2s; }
         .clear-btn:hover { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
@@ -62,6 +73,17 @@
                     <span id="charCount" style="font-size: 0.8rem; color: #94a3b8;">0文字</span>
                     <button class="clear-btn" onclick="clearInput()">クリア</button>
                 </div>
+            </div>
+
+            <!-- APIキー設定エリア（LocalStorage連動） -->
+            <div class="api-key-panel">
+                <label for="userApiKey">GEMINI API KEY 設定</label>
+                <div class="api-key-row">
+                    <input type="password" id="userApiKey" placeholder="APIキーを入力（初回のみ）">
+                    <button class="save-btn" onclick="saveApiKey()">保存 / 更新</button>
+                    <button class="delete-btn" onclick="clearApiKey()">削除</button>
+                </div>
+                <p id="apiKeyStatus" class="status-text"></p>
             </div>
             
             <div class="tools">
@@ -104,7 +126,56 @@
     </div>
 
     <script>
-        const API_KEY = "AQ.Ab8RN6KiJb8tadEsKoHLr7-ivRK-vVX6A4w27GKTON9LwOODlw"; 
+        // LocalStorageの保管キー名
+        const STORAGE_KEY = 'my_gemini_api_key';
+
+        // 画面読み込み時に保存済みキーを自動セット
+        window.addEventListener('DOMContentLoaded', () => {
+            loadApiKey();
+        });
+
+        // キー読み込み処理
+        function loadApiKey() {
+            const savedKey = localStorage.getItem(STORAGE_KEY);
+            const inputEl = document.getElementById('userApiKey');
+            const statusEl = document.getElementById('apiKeyStatus');
+
+            if (savedKey) {
+                inputEl.value = savedKey;
+                statusEl.textContent = "✅ APIキーが保存されています（次回から入力不要）";
+                statusEl.style.color = "#10b981";
+            } else {
+                inputEl.value = '';
+                statusEl.textContent = "⚠️ APIキーが未設定です。入力して「保存」を押してください。";
+                statusEl.style.color = "#ef4444";
+            }
+        }
+
+        // キー保存・更新処理
+        function saveApiKey() {
+            const keyInput = document.getElementById('userApiKey').value.trim();
+            if (!keyInput) {
+                alert('APIキーを入力してください。');
+                return;
+            }
+            localStorage.setItem(STORAGE_KEY, keyInput);
+            loadApiKey();
+            alert('APIキーをブラウザに保存・更新しました！');
+        }
+
+        // キー削除処理
+        function clearApiKey() {
+            if (confirm('保存されているAPIキーを削除しますか？')) {
+                localStorage.removeItem(STORAGE_KEY);
+                loadApiKey();
+                alert('APIキーを削除しました。');
+            }
+        }
+
+        // API実行時に呼び出すキー取得処理
+        function getApiKey() {
+            return localStorage.getItem(STORAGE_KEY) || document.getElementById('userApiKey').value.trim();
+        }
 
         function updateCharCount() {
             const count = document.getElementById('inputText').value.length;
@@ -124,7 +195,6 @@
 
         // 文字の幅を判定（全角＝1.0, 半角＝0.5）
         function getCharWidth(char) {
-            // ASCII文字、半角カナ、一部の制御文字を半角（0.5文字）として扱う
             if (char.match(/^[\x20-\x7e\uff61-\uff9f]$/)) {
                 return 0.5;
             }
@@ -136,7 +206,6 @@
             const text = document.getElementById('inputText').value;
             if (!text) return;
             
-            // 既存の改行コードを削除して連結
             const cleanText = text.replace(/\r\n/g, '').replace(/\n/g, '');
             let formattedLines = [];
             let currentLine = "";
@@ -146,7 +215,6 @@
                 const char = cleanText[i];
                 const width = getCharWidth(char);
 
-                // 文字を追加した場合に指定幅を超えるか判定
                 if (currentWidth + width > limit) {
                     formattedLines.push(currentLine);
                     currentLine = char;
@@ -156,7 +224,6 @@
                     currentWidth += width;
                 }
 
-                // 句点（。）が出現した場合は強制改行
                 if (char === '。') {
                     formattedLines.push(currentLine);
                     currentLine = "";
@@ -164,7 +231,6 @@
                 }
             }
 
-            // 残った文字を追加
             if (currentLine.length > 0) {
                 formattedLines.push(currentLine);
             }
@@ -176,6 +242,13 @@
         function setInstruction(text) { document.getElementById('instructionText').value = text; }
 
         async function runAI() {
+            // 保存または入力されているAPIキーを取得
+            const apiKey = getApiKey();
+            if (!apiKey) {
+                alert('APIキーが設定されていません。画面左上の設定エリアでAPIキーを入力し「保存」を押してください。');
+                return;
+            }
+
             const inputVal = document.getElementById('inputText').value;
             const instruction = document.getElementById('instructionText').value;
             const outputBox = document.getElementById('outputText');
@@ -184,7 +257,8 @@
 
             const prompt = `あなたは優秀なアシスタントです。指示に従って出力してください。出力文の先頭や各行の先頭に「>」などの引用記号や、不要なMarkdownの装飾は一切含めず、純粋なプレーンテキストのみを出力してください。\n\n指示: ${instruction}\n\n対象内容:\n${inputVal}`;
 
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${API_KEY}`;
+            // 動的にAPIキーを埋め込み
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`;
             try {
                 const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }) });
                 const data = await response.json();
